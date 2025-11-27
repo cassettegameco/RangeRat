@@ -8,7 +8,12 @@
     "Lua.diagnostics.severity": {
         "duplicate-set-field": "Hint"
     },
-    // Set default indent style (this is personal preference)
+    // Personal preference: Disable nil check warnings - any function that creates a new object from a resource,
+    // like gfx.image.new("path"), always triggers it so it gets annoying, but could miss real nil errors
+    "Lua.diagnostics.disable": [
+        "need-check-nil"
+    ],
+    // Personal preference: Set default indent style to 4 spaces
     "Lua.format.defaultConfig": {
         "indent_style": "space",
         "indent_size": "4"
@@ -30,6 +35,6 @@
     ],
 
     // ====== Playdate Debug Settings ======
-    // Output directory for the compiled game bundle
+    // Output directory for the compiled game bundle (omitting this places it in the project root)
     "playdate-debug.outputPath": "builds"
 }
