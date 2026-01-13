@@ -11,13 +11,13 @@ This template includes a copy of [playdate-luacats](https://github.com/notpeter/
 # Setup
 1. Download and install Visual Studio Code (VSCode) at [https://code.visualstudio.com/download](https://code.visualstudio.com/download)
 2. Download and install the Playdate SDK at [https://play.date/dev/](https://play.date/dev/)
-   - **Linux:**
+   - **Linux only:**
      - Extract the zipped SDK folder and rename the folder to `PlaydateSDK`
      - Move the `PlaydateSDK` folder to your "Documents" folder (or any other desired location)
      - Right-click the folder and select "Open in Terminal"
      - Type `sudo ./setup.sh` and press enter to run the setup script
      - Keep terminal window open for the next step
-3. **Windows and Linux:** Set your environment variable
+3. **Windows and Linux only (skip for Mac):** Set your environment variable
    - **Windows**
      - Open the "Windows Powershell" application, copy and paste the following into the terminal, and then press enter:
 
@@ -111,3 +111,4 @@ Once you fill that out and build your project one more time, you can find the `.
     - You must fill this out before sharing your game
     - You can find more information about this file [here](https://sdk.play.date/Inside%20Playdate.html#pdxinfo)
 - `README.md` - The file you're reading (can be deleted)
+
