@@ -41,8 +41,9 @@ function pd.update()
     end
 
     if showCrankHUD == true then
-        
-
+        gfx.setColor(gfx.kColorWhite)
+        gfx.fillRect(10, 10, 120, 140)
+        gfx.setColor(gfx.kColorBlack)
         gfx.drawText("Position: " .. math.floor(crankPosition) .. "deg", 20, 20)
         gfx.drawText("Change: " .. math.floor(crankChange), 20, 40)
         gfx.drawText("Accel: " .. math.floor(acceleratedChange), 20, 60)
@@ -60,6 +61,16 @@ function pd.update()
         local y = cy + math.sin(angle) * radius
 
         gfx.drawLine(cx, cy, x, y)
+
+        local meterX, meterY = 0, 230
+        local meterW, meterH = 400, 10
+
+        gfx.drawRect(meterX, meterY, meterW, meterW)
+        local fillW = math.min(smoothedSpeed * 10, meterW)
+        gfx.setColor(gfx.kColorWhite)
+        gfx.fillRect(meterX, meterY, fillW, meterH)
+        gfx.setColor(gfx.kColorBlack)
+
     end
 
     golfer:draw(golferX, golferY)
