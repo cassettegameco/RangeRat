@@ -24,6 +24,13 @@ local golferX = 60
 local golferY = 165
 local golfer = gfx.image.new("images/golfer01")
 
+-- ---------- SHOT ----------
+local swingState = "READY"
+local backswingPower = 0
+local downswingPower = 0
+local isBackswing = false
+local isDownswing = false
+
 
 -- ---------- GAME LOOP ----------
 function pd.update()
@@ -34,7 +41,12 @@ function pd.update()
     local crankDocked = pd.isCrankDocked() -- show "pull out crank prompt"
     smoothedSpeed = smoothedSpeed * 0.85 + math.abs(crankChange) * 0.15 -- crank velocity smoothing
 
-    if smoothedSpeed > 4 and smoothedSpeed < 8 then
+    isBackswing = crankChange < -1
+    isDownswing = crankChange > 1
+
+    if smoothedSpeed <= 4 then
+        tempoQuality = "BAD"
+    elseif smoothedSpeed > 4 and smoothedSpeed < 8 then
         tempoQuality = "GOOD"
     elseif smoothedSpeed >= 8 then
         tempoQuality = "FAST"
@@ -42,7 +54,7 @@ function pd.update()
 
     if showCrankHUD == true then
         gfx.setColor(gfx.kColorWhite)
-        gfx.fillRect(10, 10, 120, 140)
+        gfx.fillRect(10, 10, 120, 160)
         gfx.setColor(gfx.kColorBlack)
         gfx.drawText("Position: " .. math.floor(crankPosition) .. "deg", 20, 20)
         gfx.drawText("Change: " .. math.floor(crankChange), 20, 40)
@@ -50,6 +62,11 @@ function pd.update()
         gfx.drawText("Docked: " .. tostring(crankDocked), 20, 80)
         gfx.drawText("Speed: " .. math.floor(smoothedSpeed), 20, 100)
         gfx.drawText("Tempo: " .. tempoQuality, 20, 120)
+        if isBackswing then
+            gfx.drawText("State: BACKSWING " .. backswingPower, 20, 140)
+        else
+            gfx.drawText("State: DOWNSWING " .. downswingPower, 20, 140)
+        end
 
         local cx, cy = 320, 120
         local radius = 40
@@ -65,7 +82,7 @@ function pd.update()
         local meterX, meterY = 0, 230
         local meterW, meterH = 400, 10
 
-        gfx.drawRect(meterX, meterY, meterW, meterW)
+        gfx.drawRect(meterX, meterY, meterW, meterH)
         local fillW = math.min(smoothedSpeed * 10, meterW)
         gfx.setColor(gfx.kColorWhite)
         gfx.fillRect(meterX, meterY, fillW, meterH)
