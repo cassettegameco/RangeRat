@@ -5,6 +5,8 @@ local pd = playdate
 local gfx = pd.graphics
 
 local showCrankHUD = false
+local smoothedSpeed = 0
+local tempoQuality = "BAD" -- ⚠️ make this a table
 
 
 -- ---------- BACKGROUND ----------
@@ -27,15 +29,26 @@ local golfer = gfx.image.new("images/golfer01")
 function pd.update()
     gfx.sprite.update()
 
+    local crankPosition = pd.getCrankPosition() -- club/swing direction or aim angle
+    local crankChange, acceleratedChange = pd.getCrankChange() -- swing motion, tempo/power/fatigue risk
+    local crankDocked = pd.isCrankDocked() -- show "pull out crank prompt"
+    smoothedSpeed = smoothedSpeed * 0.85 + math.abs(crankChange) * 0.15 -- crank velocity smoothing
+
+    if smoothedSpeed > 4 and smoothedSpeed < 8 then
+        tempoQuality = "GOOD"
+    elseif smoothedSpeed >= 8 then
+        tempoQuality = "FAST"
+    end
+
     if showCrankHUD == true then
-        local crankPosition = pd.getCrankPosition() -- club/swing direction or aim angle
-        local crankChange, acceleratedChange = pd.getCrankChange() -- swing motion, tempo/power/fatigue risk
-        local crankDocked = pd.isCrankDocked() -- show "pull out crank prompt"
+        
 
         gfx.drawText("Position: " .. math.floor(crankPosition) .. "deg", 20, 20)
         gfx.drawText("Change: " .. math.floor(crankChange), 20, 40)
         gfx.drawText("Accel: " .. math.floor(acceleratedChange), 20, 60)
         gfx.drawText("Docked: " .. tostring(crankDocked), 20, 80)
+        gfx.drawText("Speed: " .. math.floor(smoothedSpeed), 20, 100)
+        gfx.drawText("Tempo: " .. tempoQuality, 20, 120)
 
         local cx, cy = 320, 120
         local radius = 40
