@@ -14,6 +14,15 @@ gfx.sprite.setBackgroundDrawingCallback(
     end
 )
 
+-- ---------- GOLFER ----------
+local golferX = 60
+local golferY = 165
+local golfer = gfx.image.new("images/golfer01")
+
+
+-- ---------- GAME LOOP ----------
 function pd.update()
     gfx.sprite.update()
+
+    golfer:draw(golferX, golferY)
 end
