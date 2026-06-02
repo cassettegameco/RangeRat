@@ -52,6 +52,7 @@ function pd.update()
         tempoQuality = "FAST"
     end
 
+    -- ⚠️ replace HUD with a debug scene
     if showCrankHUD == true then
         gfx.setColor(gfx.kColorWhite)
         gfx.fillRect(10, 10, 120, 160)
@@ -67,17 +68,6 @@ function pd.update()
         else
             gfx.drawText("State: DOWNSWING " .. downswingPower, 20, 140)
         end
-
-        local cx, cy = 320, 120
-        local radius = 40
-
-        gfx.drawCircleAtPoint(cx, cy, radius)
-
-        local angle = math.rad(crankPosition - 90)
-        local x = cx + math.cos(angle) * radius
-        local y = cy + math.sin(angle) * radius
-
-        gfx.drawLine(cx, cy, x, y)
 
         local meterX, meterY = 0, 230
         local meterW, meterH = 400, 10
