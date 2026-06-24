@@ -10,7 +10,7 @@ local tempoQuality = "BAD" -- ⚠️ make this a table
 
 
 -- ---------- BACKGROUND ----------
-local rangeBgImage = gfx.image.new("images/rangev2")
+local rangeBgImage = gfx.image.new("images/rangev3")
 gfx.sprite.setBackgroundDrawingCallback(
     function( x, y, width, height )
         -- x,y,width,height is the updated area in sprite-local coordinates
@@ -69,9 +69,9 @@ function pd.update()
 
         gfx.drawRect(meterX, meterY, meterW, meterH)
         local fillW = math.min(smoothedSpeed * 10, meterW)
-        gfx.setColor(gfx.kColorWhite)
+        -- gfx.setColor(gfx.kColorWhite)
         gfx.fillRect(meterX, meterY, fillW, meterH)
-        gfx.setColor(gfx.kColorBlack)
+        -- gfx.setColor(gfx.kColorBlack)
 
     end
 
