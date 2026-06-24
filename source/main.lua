@@ -10,7 +10,7 @@ local tempoQuality = "BAD" -- ⚠️ make this a table
 
 
 -- ---------- BACKGROUND ----------
-local rangeBgImage = gfx.image.new("images/background_range")
+local rangeBgImage = gfx.image.new("images/rangev2")
 gfx.sprite.setBackgroundDrawingCallback(
     function( x, y, width, height )
         -- x,y,width,height is the updated area in sprite-local coordinates
