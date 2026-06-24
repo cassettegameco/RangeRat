@@ -19,11 +19,6 @@ gfx.sprite.setBackgroundDrawingCallback(
     end
 )
 
--- ---------- GOLFER ----------
-local golferX = 60
-local golferY = 165
-local golfer = gfx.image.new("images/golfer01")
-
 -- ---------- SHOT ----------
 local swingState = "READY"
 local backswingPower = 0
@@ -79,8 +74,6 @@ function pd.update()
         gfx.setColor(gfx.kColorBlack)
 
     end
-
-    golfer:draw(golferX, golferY)
 
     if pd.buttonJustPressed(pd.kButtonB) then
         print("Button B Pressed")
