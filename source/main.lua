@@ -97,12 +97,17 @@ function pd.update()
     gfx.drawLine(controlPoint.x, controlPoint.y, landingPoint.x, landingPoint.y)
     gfx.drawLine(teeToControl.x, teeToControl.y, controlToLanding.x, controlToLanding.y)
 
-    -- Approximate curve with filled circles drawing a dotted curve
+    -- animate ball along curve
+    local ball = bezier(teePoint, landingPoint, controlPoint, animationT)
+    gfx.fillCircleAtPoint(ball.x, ball.y, 3)
+
+    --[[ Approximate curve with filled circles drawing a dotted curve
     for i = 1, 25, 1 do
         local curveT = i/25
         local point = bezier(teePoint, landingPoint, controlPoint, curveT)
         gfx.fillCircleAtPoint(point.x, point.y, 5)
     end
+    ]]
 
     if pd.buttonIsPressed(pd.kButtonUp) then
         controlPoint.y -= 1
