@@ -54,7 +54,7 @@ function pd.update()
     gfx.clear()
 
     local time = pd.getCurrentTimeMilliseconds() / 1000
-    local t = math.sin(time) * 0.5 + 0.5
+    local animationT = math.sin(time) * 0.5 + 0.5
 
     gfx.sprite.update()
 
@@ -85,29 +85,23 @@ function pd.update()
     gfx.drawText("CP", controlPoint.x - 30, controlPoint.y - 20)
 
 
-    local teeToControl = mix(teePoint, controlPoint, t)
-    local apexToLanding = mix(controlPoint, landingPoint, t)
+    local teeToControl = mix(teePoint, controlPoint, animationT)
+    local controlToLanding = mix(controlPoint, landingPoint, animationT)
     gfx.drawCircleAtPoint(teeToControl.x, teeToControl.y, 7)
-    gfx.drawCircleAtPoint(apexToLanding.x, apexToLanding.y, 7)
+    gfx.drawCircleAtPoint(controlToLanding.x, controlToLanding.y, 7)
 
-    local curvePoint = mix(teeToControl, apexToLanding, t)
+    local curvePoint = mix(teeToControl, controlToLanding, animationT)
     gfx.drawCircleAtPoint(curvePoint.x, curvePoint.y, 7)
 
     gfx.drawLine(teePoint.x, teePoint.y, controlPoint.x, controlPoint.y)
     gfx.drawLine(controlPoint.x, controlPoint.y, landingPoint.x, landingPoint.y)
-    gfx.drawLine(teeToControl.x, teeToControl.y, apexToLanding.x, apexToLanding.y)
+    gfx.drawLine(teeToControl.x, teeToControl.y, controlToLanding.x, controlToLanding.y)
 
     -- Approximate curve with filled circles drawing a dotted curve
-    local previousPoint = teePoint
-    local newPoint = teePoint
     for i = 1, 25, 1 do
-        t = i/25
-
-        newPoint = bezier(teePoint, landingPoint, controlPoint, t)
-
-        gfx.fillCircleAtPoint(newPoint.x, newPoint.y, 5)
-
-        previousPoint = newPoint
+        local curveT = i/25
+        local point = bezier(teePoint, landingPoint, controlPoint, curveT)
+        gfx.fillCircleAtPoint(point.x, point.y, 5)
     end
 
     if pd.buttonIsPressed(pd.kButtonUp) then
