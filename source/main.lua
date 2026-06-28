@@ -22,9 +22,9 @@ gfx.sprite.setBackgroundDrawingCallback(
 ]]
 
 -- ---------- BEZIER CURVE EXPERIMENTATION ----------
-local pointA = { x = 200, y = 220 }
-local pointB = { x = 380, y = 20 }
-local pointC = { x = 200, y = 120 }
+local teePoint = { x = 200, y = 220 }
+local landingPoint = { x = 380, y = 20 }
+local controlPoint = { x = 200, y = 120 }
 
 local function lerp(a, b, t)
     return a + (b - a) * t
@@ -75,29 +75,35 @@ function pd.update()
     end
 
     -- ---------- Bezier Curve Experimation - START ----------
-    gfx.drawCircleAtPoint(pointA.x, pointA.y, 10)
-    gfx.drawCircleAtPoint(pointB.x, pointB.y, 10)
-    gfx.drawCircleAtPoint(pointC.x, pointC.y, 10)
+    gfx.drawCircleAtPoint(teePoint.x, teePoint.y, 10)
+    gfx.drawText("TP", teePoint.x - 30, teePoint.y - 20)
 
-    local pointAC = mix(pointA, pointC, t)
-    local pointCB = mix(pointC, pointB, t)
-    gfx.drawCircleAtPoint(pointAC.x, pointAC.y, 7)
-    gfx.drawCircleAtPoint(pointCB.x, pointCB.y, 7)
+    gfx.drawCircleAtPoint(landingPoint.x, landingPoint.y, 10)
+    gfx.drawText("LP", landingPoint.x - 30, landingPoint.y - 20)
 
-    local pointACB = mix(pointAC, pointCB, t)
-    gfx.drawCircleAtPoint(pointACB.x, pointACB.y, 7)
+    gfx.drawCircleAtPoint(controlPoint.x, controlPoint.y, 10)
+    gfx.drawText("CP", controlPoint.x - 30, controlPoint.y - 20)
 
-    gfx.drawLine(pointA.x, pointA.y, pointC.x, pointC.y)
-    gfx.drawLine(pointC.x, pointC.y, pointB.x, pointB.y)
-    gfx.drawLine(pointAC.x, pointAC.y, pointCB.x, pointCB.y)
+
+    local teeToControl = mix(teePoint, controlPoint, t)
+    local apexToLanding = mix(controlPoint, landingPoint, t)
+    gfx.drawCircleAtPoint(teeToControl.x, teeToControl.y, 7)
+    gfx.drawCircleAtPoint(apexToLanding.x, apexToLanding.y, 7)
+
+    local curvePoint = mix(teeToControl, apexToLanding, t)
+    gfx.drawCircleAtPoint(curvePoint.x, curvePoint.y, 7)
+
+    gfx.drawLine(teePoint.x, teePoint.y, controlPoint.x, controlPoint.y)
+    gfx.drawLine(controlPoint.x, controlPoint.y, landingPoint.x, landingPoint.y)
+    gfx.drawLine(teeToControl.x, teeToControl.y, apexToLanding.x, apexToLanding.y)
 
     -- Approximate curve with filled circles drawing a dotted curve
-    local previousPoint = pointA
-    local newPoint = pointA
+    local previousPoint = teePoint
+    local newPoint = teePoint
     for i = 1, 25, 1 do
         t = i/25
 
-        newPoint = bezier(pointA, pointB, pointC, t)
+        newPoint = bezier(teePoint, landingPoint, controlPoint, t)
 
         gfx.fillCircleAtPoint(newPoint.x, newPoint.y, 5)
 
@@ -105,13 +111,13 @@ function pd.update()
     end
 
     if pd.buttonIsPressed(pd.kButtonUp) then
-        pointC.y -= 1
+        controlPoint.y -= 1
     elseif pd.buttonIsPressed(pd.kButtonRight) then
-        pointC.x += 1
+        controlPoint.x += 1
     elseif pd.buttonIsPressed(pd.kButtonDown) then
-        pointC.y += 1
+        controlPoint.y += 1
     elseif pd.buttonIsPressed(pd.kButtonLeft) then
-        pointC.x -= 1
+        controlPoint.x -= 1
     end
     -- ---------- Bezier Curve Experimation - END ----------
 
