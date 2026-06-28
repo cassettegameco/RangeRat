@@ -4,7 +4,7 @@ import "CoreLibs/sprites"
 local pd = playdate
 local gfx = pd.graphics
 
-local showCrankHUD = false
+local showDebugHUD = false
 local smoothedSpeed = 0
 local tempoQuality = "BAD" -- ⚠️ make this a table
 
@@ -75,27 +75,29 @@ function pd.update()
     end
 
     -- ---------- Bezier Curve Experimation - START ----------
-    gfx.drawCircleAtPoint(teePoint.x, teePoint.y, 10)
-    gfx.drawText("TP", teePoint.x - 30, teePoint.y - 20)
+    if showDebugHUD then
+        gfx.drawCircleAtPoint(teePoint.x, teePoint.y, 10)
+        gfx.drawText("TP", teePoint.x - 30, teePoint.y - 20)
 
-    gfx.drawCircleAtPoint(landingPoint.x, landingPoint.y, 10)
-    gfx.drawText("LP", landingPoint.x - 30, landingPoint.y - 20)
+        gfx.drawCircleAtPoint(landingPoint.x, landingPoint.y, 10)
+        gfx.drawText("LP", landingPoint.x - 30, landingPoint.y - 20)
 
-    gfx.drawCircleAtPoint(controlPoint.x, controlPoint.y, 10)
-    gfx.drawText("CP", controlPoint.x - 30, controlPoint.y - 20)
+        gfx.drawCircleAtPoint(controlPoint.x, controlPoint.y, 10)
+        gfx.drawText("CP", controlPoint.x - 30, controlPoint.y - 20)
 
 
-    local teeToControl = mix(teePoint, controlPoint, animationT)
-    local controlToLanding = mix(controlPoint, landingPoint, animationT)
-    gfx.drawCircleAtPoint(teeToControl.x, teeToControl.y, 7)
-    gfx.drawCircleAtPoint(controlToLanding.x, controlToLanding.y, 7)
+        local teeToControl = mix(teePoint, controlPoint, animationT)
+        local controlToLanding = mix(controlPoint, landingPoint, animationT)
+        gfx.drawCircleAtPoint(teeToControl.x, teeToControl.y, 7)
+        gfx.drawCircleAtPoint(controlToLanding.x, controlToLanding.y, 7)
 
-    local curvePoint = mix(teeToControl, controlToLanding, animationT)
-    gfx.drawCircleAtPoint(curvePoint.x, curvePoint.y, 7)
+        local curvePoint = mix(teeToControl, controlToLanding, animationT)
+        gfx.drawCircleAtPoint(curvePoint.x, curvePoint.y, 7)
 
-    gfx.drawLine(teePoint.x, teePoint.y, controlPoint.x, controlPoint.y)
-    gfx.drawLine(controlPoint.x, controlPoint.y, landingPoint.x, landingPoint.y)
-    gfx.drawLine(teeToControl.x, teeToControl.y, controlToLanding.x, controlToLanding.y)
+        gfx.drawLine(teePoint.x, teePoint.y, controlPoint.x, controlPoint.y)
+        gfx.drawLine(controlPoint.x, controlPoint.y, landingPoint.x, landingPoint.y)
+        gfx.drawLine(teeToControl.x, teeToControl.y, controlToLanding.x, controlToLanding.y)
+    end
 
     -- animate ball along curve
     local ball = bezier(teePoint, landingPoint, controlPoint, animationT)
@@ -121,7 +123,7 @@ function pd.update()
     -- ---------- Bezier Curve Experimation - END ----------
 
     -- ⚠️ replace HUD with a debug scene
-    if showCrankHUD == true then
+    if showDebugHUD == true then
         gfx.setColor(gfx.kColorWhite)
         gfx.fillRect(10, 10, 120, 160)
         gfx.setColor(gfx.kColorBlack)
@@ -148,10 +150,10 @@ function pd.update()
 
     if pd.buttonJustPressed(pd.kButtonB) then
         print("Button B Pressed")
-        if showCrankHUD == false then
-            showCrankHUD = true
+        if showDebugHUD == false then
+            showDebugHUD = true
         else
-            showCrankHUD = false
+            showDebugHUD = false
         end
     end
 end
