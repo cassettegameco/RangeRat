@@ -95,6 +95,16 @@ function pd.update()
         gfx.drawLine(teeToControl.x, teeToControl.y, controlToLanding.x, controlToLanding.y)
     end
 
+    -- trigger test shot
+    if pd.buttonIsPressed(pd.AButtonDown) then
+        if isShotActive then
+            return
+        end
+
+        shotProgress = 0.0
+        isShotActive = true
+    end
+
     -- animate ball along curve
     local ball = Bezier.at(teePoint, controlPoint, landingPoint, animationT)
     gfx.fillCircleAtPoint(ball.x, ball.y, 3)
