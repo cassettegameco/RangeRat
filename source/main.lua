@@ -5,10 +5,16 @@ import "bezier"
 local pd = playdate
 local gfx = pd.graphics
 
+local SwingState = {
+    Ready = "READY",
+    Backswing = "BACKSWING",
+    Downswing = "DOWNSWING",
+    Flight = "FLIGHT"
+}
+
 local showDebugHUD = false
 local smoothedSpeed = 0
 local tempoQuality = "BAD" -- ⚠️ make this a table
-
 
 -- ---------- BACKGROUND ----------
 local rangeBgImage = gfx.image.new("images/rangev3")
@@ -24,21 +30,16 @@ gfx.sprite.setBackgroundDrawingCallback(
 
 -- ---------- BEZIER CURVE EXPERIMENTATION ----------
 local teePoint = { x = 200, y = 220 }
-local landingPoint = { x = 380, y = 20 }
+local landingPoint = { x = 180, y = 20 }
 local controlPoint = { x = 200, y = 120 }
 
 -- ---------- SHOT ----------
-local isShotActive = false
 local shotStartTime = 0.0
 local shotProgress = 0.0 -- represents how far along animation (normalzied progress from 0.0 to 1.0)
 local shotDuration = 0.75
 
-local swingState = "READY"
-local backswingPower = 0
-local downswingPower = 0
-local isBackswing = false
+local swingState = SwingState.Ready
 local swingThreshold = 8
-local isDownswing = false
 
 
 -- ---------- GAME LOOP ----------
@@ -55,9 +56,6 @@ function pd.update()
     local crankDocked = pd.isCrankDocked() -- show "pull out crank prompt"
     smoothedSpeed = smoothedSpeed * 0.85 + math.abs(crankChange) * 0.15 -- crank velocity smoothing
 
-    isBackswing = crankChange < -swingThreshold
-    isDownswing = crankChange > swingThreshold
-
     if smoothedSpeed <= 4 then
         tempoQuality = "BAD"
     elseif smoothedSpeed > 4 and smoothedSpeed < 8 then
@@ -66,7 +64,7 @@ function pd.update()
         tempoQuality = "FAST"
     end
 
-    -- ---------- Bezier Curve Experimation - START ----------
+    -- ---------- Bezier Curve Experimation ----------
     if showDebugHUD then
         gfx.drawCircleAtPoint(teePoint.x, teePoint.y, 10)
         gfx.drawText("TP", teePoint.x - 30, teePoint.y - 20)
@@ -97,29 +95,33 @@ function pd.update()
         gfx.drawLine(teeToControl.x, teeToControl.y, controlToLanding.x, controlToLanding.y)
     end
 
-    -- trigger test shot
-    if isDownswing and not isShotActive then
-        shotStartTime = pd.getCurrentTimeMilliseconds() / 1000
-        shotProgress = 0.0
-        isShotActive = true
-    end
+    gfx.drawText("State: " .. swingState, 20, 20)
 
-    -- animate ball along curve for active shot
-    if isShotActive then
+    -- ---------- SWING STATE MACHINE ----------
+    if swingState == SwingState.Ready then -- READY
+        if crankChange < -swingThreshold then
+            swingState = SwingState.Backswing
+        end
+    elseif swingState == SwingState.Backswing then -- BACKSWING
+            -- trigger test shot
+        if crankChange > swingThreshold then
+            shotStartTime = pd.getCurrentTimeMilliseconds() / 1000
+            shotProgress = 0.0
+            swingState = SwingState.Flight
+        end
+    elseif swingState == SwingState.Flight then -- FLIGHT
         local currentTime = pd.getCurrentTimeMilliseconds() / 1000
         local elapsed = currentTime - shotStartTime
 
         shotProgress = math.min(elapsed / shotDuration, 1.0)
 
         local ball = Bezier.at(teePoint, controlPoint, landingPoint, shotProgress)
-        gfx.fillCircleAtPoint(ball.x, ball.y, 3)
+        gfx.fillCircleAtPoint(ball.x, ball.y, 5)
 
         if shotProgress >= 1.0 then
-            isShotActive = false
+            swingState = SwingState.Ready
         end
     end
-
-    
 
     --[[ Approximate curve with filled circles drawing a dotted curve
     for i = 1, 25, 1 do
@@ -151,11 +153,6 @@ function pd.update()
         gfx.drawText("Docked: " .. tostring(crankDocked), 20, 80)
         gfx.drawText("Speed: " .. math.floor(smoothedSpeed), 20, 100)
         gfx.drawText("Tempo: " .. tempoQuality, 20, 120)
-        if isBackswing then
-            gfx.drawText("State: BACKSWING " .. backswingPower, 20, 140)
-        else
-            gfx.drawText("State: DOWNSWING " .. downswingPower, 20, 140)
-        end
 
         local meterX, meterY = 0, 230
         local meterW, meterH = 400, 10
