@@ -37,6 +37,7 @@ local swingState = "READY"
 local backswingPower = 0
 local downswingPower = 0
 local isBackswing = false
+local swingThreshold = 8
 local isDownswing = false
 
 
@@ -54,8 +55,8 @@ function pd.update()
     local crankDocked = pd.isCrankDocked() -- show "pull out crank prompt"
     smoothedSpeed = smoothedSpeed * 0.85 + math.abs(crankChange) * 0.15 -- crank velocity smoothing
 
-    isBackswing = crankChange < -1
-    isDownswing = crankChange > 1
+    isBackswing = crankChange < -swingThreshold
+    isDownswing = crankChange > swingThreshold
 
     if smoothedSpeed <= 4 then
         tempoQuality = "BAD"
@@ -97,11 +98,7 @@ function pd.update()
     end
 
     -- trigger test shot
-    if pd.buttonJustPressed(pd.kButtonA) then
-        if isShotActive then
-            return
-        end
-
+    if isDownswing and not isShotActive then
         shotStartTime = pd.getCurrentTimeMilliseconds() / 1000
         shotProgress = 0.0
         isShotActive = true
