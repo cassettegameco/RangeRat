@@ -29,6 +29,7 @@ local controlPoint = { x = 200, y = 120 }
 
 -- ---------- SHOT ----------
 local isShotActive = false
+local shotStartTime = 0.0
 local shotProgress = 0.0 -- represents how far along animation (normalzied progress from 0.0 to 1.0)
 local shotDuration = 0.75
 
@@ -96,18 +97,32 @@ function pd.update()
     end
 
     -- trigger test shot
-    if pd.buttonIsPressed(pd.AButtonDown) then
+    if pd.buttonJustPressed(pd.kButtonA) then
         if isShotActive then
             return
         end
 
+        shotStartTime = pd.getCurrentTimeMilliseconds() / 1000
         shotProgress = 0.0
         isShotActive = true
     end
 
-    -- animate ball along curve
-    local ball = Bezier.at(teePoint, controlPoint, landingPoint, animationT)
-    gfx.fillCircleAtPoint(ball.x, ball.y, 3)
+    -- animate ball along curve for active shot
+    if isShotActive then
+        local currentTime = pd.getCurrentTimeMilliseconds() / 1000
+        local elapsed = currentTime - shotStartTime
+
+        shotProgress = math.min(elapsed / shotDuration, 1.0)
+
+        local ball = Bezier.at(teePoint, controlPoint, landingPoint, shotProgress)
+        gfx.fillCircleAtPoint(ball.x, ball.y, 3)
+
+        if shotProgress >= 1.0 then
+            isShotActive = false
+        end
+    end
+
+    
 
     --[[ Approximate curve with filled circles drawing a dotted curve
     for i = 1, 25, 1 do
