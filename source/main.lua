@@ -28,6 +28,10 @@ local landingPoint = { x = 380, y = 20 }
 local controlPoint = { x = 200, y = 120 }
 
 -- ---------- SHOT ----------
+local isShotActive = false
+local shotProgress = 0.0 -- represents how far along animation (normalzied progress from 0.0 to 1.0)
+local shotDuration = 0.75
+
 local swingState = "READY"
 local backswingPower = 0
 local downswingPower = 0
