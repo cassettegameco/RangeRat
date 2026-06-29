@@ -1,5 +1,6 @@
 import "CoreLibs/graphics"
 import "CoreLibs/sprites"
+import "bezier"
 
 local pd = playdate
 local gfx = pd.graphics
@@ -25,21 +26,6 @@ gfx.sprite.setBackgroundDrawingCallback(
 local teePoint = { x = 200, y = 220 }
 local landingPoint = { x = 380, y = 20 }
 local controlPoint = { x = 200, y = 120 }
-
-local function lerp(a, b, t)
-    return a + (b - a) * t
-end
-
-local function mix(a, b, t)
-    return {
-        x = lerp(a.x, b.x, t),
-        y = lerp(a.y, b.y, t)
-    }
-end
-
-local function bezier(a, b, c, t)
-    return mix(mix(a, c, t), mix(c, b, t), t)
-end
 
 -- ---------- SHOT ----------
 local swingState = "READY"
@@ -85,13 +71,19 @@ function pd.update()
         gfx.drawCircleAtPoint(controlPoint.x, controlPoint.y, 10)
         gfx.drawText("CP", controlPoint.x - 30, controlPoint.y - 20)
 
+        --[[
+            function Bezier.debugPoints(teePoint, controlPoint, landingPoint, elapsedTime)
+                local teeToControl = mix(teePoint, controlPoint, elapsedTime)
+                local controlToLanding = mix(controlPoint, landingPoint, elapsedTime)
+                local curvePoint = mix(teeToControl, controlToLanding, elapsedTime)
 
-        local teeToControl = mix(teePoint, controlPoint, animationT)
-        local controlToLanding = mix(controlPoint, landingPoint, animationT)
+                return teeToControl, controlToLanding, curvePoint
+            end
+        ]]
+
+        local teeToControl, controlToLanding, curvePoint = Bezier.debugPoints(teePoint, controlPoint, landingPoint, animationT)
         gfx.drawCircleAtPoint(teeToControl.x, teeToControl.y, 7)
         gfx.drawCircleAtPoint(controlToLanding.x, controlToLanding.y, 7)
-
-        local curvePoint = mix(teeToControl, controlToLanding, animationT)
         gfx.drawCircleAtPoint(curvePoint.x, curvePoint.y, 7)
 
         gfx.drawLine(teePoint.x, teePoint.y, controlPoint.x, controlPoint.y)
@@ -100,7 +92,7 @@ function pd.update()
     end
 
     -- animate ball along curve
-    local ball = bezier(teePoint, landingPoint, controlPoint, animationT)
+    local ball = Bezier.at(teePoint, controlPoint, landingPoint, animationT)
     gfx.fillCircleAtPoint(ball.x, ball.y, 3)
 
     --[[ Approximate curve with filled circles drawing a dotted curve
