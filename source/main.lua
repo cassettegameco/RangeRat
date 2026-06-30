@@ -4,6 +4,7 @@ import "bezier"
 
 local pd = playdate
 local gfx = pd.graphics
+local showDebugHUD = false
 
 local SwingState = {
     Ready = "READY",
@@ -12,9 +13,19 @@ local SwingState = {
     Flight = "FLIGHT"
 }
 
-local showDebugHUD = false
-local smoothedSpeed = 0
-local tempoQuality = "BAD" -- ⚠️ make this a table
+--[[
+ShotQuality = backswing amount + downswing speed + tempo ratio
+    - backswing power:      how much the player loaded the swing
+    - downswing speed:      how fast the player came through impact
+    - tempo quality:        whether the downswing was proportional to the backswing
+    - shot quality:         the final result of combining tempo, power, and later tilt
+]]
+local ShotQuality = {
+    Pure = "PURE",
+    Weak = "WEAK",
+    Rushed = "RUSHED",
+    Mishit = "MISHIT"
+}
 
 -- ---------- BACKGROUND ----------
 local rangeBgImage = gfx.image.new("images/rangev3")
@@ -29,9 +40,9 @@ gfx.sprite.setBackgroundDrawingCallback(
 ]]
 
 -- ---------- BEZIER CURVE EXPERIMENTATION ----------
-local teePoint = { x = 200, y = 220 }
-local landingPoint = { x = 180, y = 20 }
-local controlPoint = { x = 200, y = 120 }
+local teePoint = { x = 300, y = 220 }
+local landingPoint = { x = 280, y = 20 }
+local controlPoint = { x = 300, y = 120 }
 
 -- ---------- SHOT ----------
 local shotStartTime = 0.0
@@ -39,12 +50,46 @@ local shotProgress = 0.0 -- represents how far along animation (normalzied progr
 local shotDuration = 0.75
 
 local swingState = SwingState.Ready
+local backswingPower = 0.0
+local downswingPower = 0.0
+local tempoRatio = 0.0
+local currentShotQuality = ShotQuality.Weak
 local swingThreshold = 8
 
+local gravityX = 0
+local gravityY = 0
+local gravityZ = 0
+
+-- ⚠️ consider splitting into separate functions, calculateTempoQuality and calculateShotQuality
+local function evaluateShotQuality(backswingPower, downswingPower)
+    -- avoid division by zero
+    if backswingPower <= 0 then
+        return ShotQuality.Mishit, 0
+    end
+
+    -- tempo ratio compares how aggressive the downswing was relative to the backswing
+    -- ~1.0 means the downswing matches the backswing
+    local ratio = downswingPower / backswingPower
+
+    if backswingPower < 10 then
+        return ShotQuality.Weak, ratio
+    elseif ratio >= 0.8 and ratio <= 1.4 then
+        return ShotQuality.Pure, ratio
+    elseif ratio > 1.4 and ratio <= 2.0 then
+        return ShotQuality.Rushed, ratio
+    else
+        return ShotQuality.Mishit, ratio
+    end
+end
+
+-- ⚠️ is off by default to save power, stop to put back in lower-power state
+pd.startAccelerometer()
 
 -- ---------- GAME LOOP ----------
 function pd.update()
     gfx.clear()
+
+    gravityX, gravityY, gravityZ = pd.readAccelerometer()
 
     local time = pd.getCurrentTimeMilliseconds() / 1000
     local animationT = math.sin(time) * 0.5 + 0.5
@@ -53,16 +98,6 @@ function pd.update()
 
     local crankPosition = pd.getCrankPosition() -- club/swing direction or aim angle
     local crankChange, acceleratedChange = pd.getCrankChange() -- swing motion, tempo/power/fatigue risk
-    local crankDocked = pd.isCrankDocked() -- show "pull out crank prompt"
-    smoothedSpeed = smoothedSpeed * 0.85 + math.abs(crankChange) * 0.15 -- crank velocity smoothing
-
-    if smoothedSpeed <= 4 then
-        tempoQuality = "BAD"
-    elseif smoothedSpeed > 4 and smoothedSpeed < 8 then
-        tempoQuality = "GOOD"
-    elseif smoothedSpeed >= 8 then
-        tempoQuality = "FAST"
-    end
 
     -- ---------- Bezier Curve Experimation ----------
     if showDebugHUD then
@@ -75,16 +110,6 @@ function pd.update()
         gfx.drawCircleAtPoint(controlPoint.x, controlPoint.y, 10)
         gfx.drawText("CP", controlPoint.x - 30, controlPoint.y - 20)
 
-        --[[
-            function Bezier.debugPoints(teePoint, controlPoint, landingPoint, elapsedTime)
-                local teeToControl = mix(teePoint, controlPoint, elapsedTime)
-                local controlToLanding = mix(controlPoint, landingPoint, elapsedTime)
-                local curvePoint = mix(teeToControl, controlToLanding, elapsedTime)
-
-                return teeToControl, controlToLanding, curvePoint
-            end
-        ]]
-
         local teeToControl, controlToLanding, curvePoint = Bezier.debugPoints(teePoint, controlPoint, landingPoint, animationT)
         gfx.drawCircleAtPoint(teeToControl.x, teeToControl.y, 7)
         gfx.drawCircleAtPoint(controlToLanding.x, controlToLanding.y, 7)
@@ -93,18 +118,42 @@ function pd.update()
         gfx.drawLine(teePoint.x, teePoint.y, controlPoint.x, controlPoint.y)
         gfx.drawLine(controlPoint.x, controlPoint.y, landingPoint.x, landingPoint.y)
         gfx.drawLine(teeToControl.x, teeToControl.y, controlToLanding.x, controlToLanding.y)
-    end
 
-    gfx.drawText("State: " .. swingState, 20, 20)
+        gfx.drawText("State: " .. swingState, 20, 20)
+        gfx.drawText("Shot: " .. currentShotQuality, 20, 40)
+        gfx.drawText("Back: " .. math.floor(backswingPower), 20, 60)
+        gfx.drawText("Down: " .. math.floor(downswingPower), 20, 80)
+        gfx.drawText("Ratio: " .. string.format("%.2f", tempoRatio), 20, 100) 
+        gfx.drawText("Tilt: " .. tostring(gravityX) .. ", " .. tostring(gravityY) .. ", " .. tostring(gravityZ), 20, 120) 
+    end
 
     -- ---------- SWING STATE MACHINE ----------
     if swingState == SwingState.Ready then -- READY
+        -- reset swing measurements before starting a new swing
+        backswingPower = 0
+        downswingPower = 0
+        tempoRatio = 0
+    
+        -- a backswing is negative crank movement above a threshold
         if crankChange < -swingThreshold then
+            backswingPower = math.abs(crankChange)
             swingState = SwingState.Backswing
         end
     elseif swingState == SwingState.Backswing then -- BACKSWING
-            -- trigger test shot
+        -- while in backswing, keep the strongest backwards crank movement
+        -- this represents how much the player loaded the swing
+        if crankChange < 0 then
+            backswingPower = math.max(backswingPower, math.abs(crankChange))
+        end
+    
+        -- a downswing is positive crank movement after a valid backswing
+        -- trigger test shot
         if crankChange > swingThreshold then
+            downswingPower = crankChange
+
+            -- evaluate shot quality at impact
+            currentShotQuality, tempoRatio = evaluateShotQuality(backswingPower, downswingPower)
+
             shotStartTime = pd.getCurrentTimeMilliseconds() / 1000
             shotProgress = 0.0
             swingState = SwingState.Flight
@@ -122,6 +171,7 @@ function pd.update()
             swingState = SwingState.Ready
         end
     end
+    -- ------------------------------------------
 
     --[[ Approximate curve with filled circles drawing a dotted curve
     for i = 1, 25, 1 do
@@ -141,27 +191,6 @@ function pd.update()
         controlPoint.x -= 1
     end
     -- ---------- Bezier Curve Experimation - END ----------
-
-    -- ⚠️ replace HUD with a debug scene
-    if showDebugHUD == true then
-        gfx.setColor(gfx.kColorWhite)
-        gfx.fillRect(10, 10, 120, 160)
-        gfx.setColor(gfx.kColorBlack)
-        gfx.drawText("Position: " .. math.floor(crankPosition) .. "deg", 20, 20)
-        gfx.drawText("Change: " .. math.floor(crankChange), 20, 40)
-        gfx.drawText("Accel: " .. math.floor(acceleratedChange), 20, 60)
-        gfx.drawText("Docked: " .. tostring(crankDocked), 20, 80)
-        gfx.drawText("Speed: " .. math.floor(smoothedSpeed), 20, 100)
-        gfx.drawText("Tempo: " .. tempoQuality, 20, 120)
-
-        local meterX, meterY = 0, 230
-        local meterW, meterH = 400, 10
-
-        gfx.drawRect(meterX, meterY, meterW, meterH)
-        local fillW = math.min(smoothedSpeed * 10, meterW)
-        gfx.fillRect(meterX, meterY, fillW, meterH)
-
-    end
 
     if pd.buttonJustPressed(pd.kButtonB) then
         print("Button B Pressed")
