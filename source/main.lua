@@ -5,6 +5,7 @@ import "bezier"
 local pd = playdate
 local gfx = pd.graphics
 local showDebugHUD = false
+local showDebugLines = false
 
 local SwingState = {
     Ready = "READY",
@@ -27,6 +28,14 @@ local ShotQuality = {
     Mishit = "MISHIT"
 }
 
+local ShotShape = {
+    Hook = "HOOK",
+    Draw = "DRAW",
+    Straight = "STRAIGHT",
+    Fade = "FADE",
+    Slice = "SLICE"
+}
+
 -- ---------- BACKGROUND ----------
 local rangeBgImage = gfx.image.new("images/rangev3")
 --[[
@@ -40,9 +49,9 @@ gfx.sprite.setBackgroundDrawingCallback(
 ]]
 
 -- ---------- BEZIER CURVE EXPERIMENTATION ----------
-local teePoint = { x = 300, y = 220 }
-local landingPoint = { x = 280, y = 20 }
-local controlPoint = { x = 300, y = 120 }
+local teePoint = { x = 200, y = 220 }
+local landingPoint = { x = 200, y = 20 }
+local controlPoint = { x = 200, y = 120 }
 
 -- ---------- SHOT ----------
 local shotStartTime = 0.0
@@ -56,9 +65,11 @@ local tempoRatio = 0.0
 local currentShotQuality = ShotQuality.Weak
 local swingThreshold = 8
 
-local gravityX = 0
-local gravityY = 0
-local gravityZ = 0
+local currentDeviceTiltX = 0.0
+local deviceTiltAtImpact = 0.0
+local currentShotShape = ShotShape.Straight
+local straightTiltThreshold = 0.10
+local severeTiltThreshold = 0.35
 
 -- ⚠️ consider splitting into separate functions, calculateTempoQuality and calculateShotQuality
 local function evaluateShotQuality(backswingPower, downswingPower)
@@ -82,6 +93,79 @@ local function evaluateShotQuality(backswingPower, downswingPower)
     end
 end
 
+--[[
+- deviceTiltX = left/right device tilt at impact
+- -tilt = left curve / +tilt = right curve
+- there is a small tilt threshold so the player has a fair dead zone
+]]
+local function evaluateShotShape(deviceTilt)
+    local absTilt = math.abs(deviceTilt)
+
+    if absTilt < straightTiltThreshold then
+        return ShotShape.Straight
+    end
+
+    if deviceTilt < 0 then
+        if absTilt >= severeTiltThreshold then
+            return ShotShape.Hook
+        else
+            return ShotShape.Draw
+        end
+    else
+        if absTilt >= severeTiltThreshold then
+           return ShotShape.Slice 
+        else
+            return ShotShape.Fade
+        end
+    end
+end
+
+local function applyShotShape(shape)
+    -- reset to a default centered shot first
+    controlPoint.x = 200
+    landingPoint.x = 200
+
+    if shape == ShotShape.Hook then
+        controlPoint.x = 170
+        landingPoint.x = 125
+    elseif shape == ShotShape.Draw then
+        controlPoint.x = 190
+        landingPoint.x = 175
+    elseif shape == ShotShape.Straight then
+        controlPoint.x = 200
+        landingPoint.x = 200
+    elseif shape == ShotShape.Fade then
+        controlPoint.x = 210
+        landingPoint.x = 225
+    elseif shape == ShotShape.Slice then
+        controlPoint.x = 230
+        landingPoint.x = 275
+    end
+end
+
+local function applyShotQuality(quality)
+    if quality == ShotQuality.Pure then
+        landingPoint.y = 20   -- far
+        controlPoint.y = 80   -- high arc
+        shotDuration = 0.75
+
+    elseif quality == ShotQuality.Weak then
+        landingPoint.y = 90   -- shorter
+        controlPoint.y = 150  -- lower/softer arc
+        shotDuration = 0.65
+
+    elseif quality == ShotQuality.Rushed then
+        landingPoint.y = 40   -- still travels
+        controlPoint.y = 125  -- lower, flatter arc
+        shotDuration = 0.55
+
+    elseif quality == ShotQuality.Mishit then
+        landingPoint.y = 150  -- very short
+        controlPoint.y = 190  -- ugly low dribbler
+        shotDuration = 0.45
+    end
+end
+
 -- ⚠️ is off by default to save power, stop to put back in lower-power state
 pd.startAccelerometer()
 
@@ -89,7 +173,10 @@ pd.startAccelerometer()
 function pd.update()
     gfx.clear()
 
-    gravityX, gravityY, gravityZ = pd.readAccelerometer()
+    -- read device tilt every frame
+    -- x is left/right / y is forward/backward / z is vertical orientation
+    local tiltX, tiltY, tiltZ = pd.readAccelerometer()
+    currentDeviceTiltX = tiltX
 
     local time = pd.getCurrentTimeMilliseconds() / 1000
     local animationT = math.sin(time) * 0.5 + 0.5
@@ -98,34 +185,6 @@ function pd.update()
 
     local crankPosition = pd.getCrankPosition() -- club/swing direction or aim angle
     local crankChange, acceleratedChange = pd.getCrankChange() -- swing motion, tempo/power/fatigue risk
-
-    -- ---------- Bezier Curve Experimation ----------
-    if showDebugHUD then
-        gfx.drawCircleAtPoint(teePoint.x, teePoint.y, 10)
-        gfx.drawText("TP", teePoint.x - 30, teePoint.y - 20)
-
-        gfx.drawCircleAtPoint(landingPoint.x, landingPoint.y, 10)
-        gfx.drawText("LP", landingPoint.x - 30, landingPoint.y - 20)
-
-        gfx.drawCircleAtPoint(controlPoint.x, controlPoint.y, 10)
-        gfx.drawText("CP", controlPoint.x - 30, controlPoint.y - 20)
-
-        local teeToControl, controlToLanding, curvePoint = Bezier.debugPoints(teePoint, controlPoint, landingPoint, animationT)
-        gfx.drawCircleAtPoint(teeToControl.x, teeToControl.y, 7)
-        gfx.drawCircleAtPoint(controlToLanding.x, controlToLanding.y, 7)
-        gfx.drawCircleAtPoint(curvePoint.x, curvePoint.y, 7)
-
-        gfx.drawLine(teePoint.x, teePoint.y, controlPoint.x, controlPoint.y)
-        gfx.drawLine(controlPoint.x, controlPoint.y, landingPoint.x, landingPoint.y)
-        gfx.drawLine(teeToControl.x, teeToControl.y, controlToLanding.x, controlToLanding.y)
-
-        gfx.drawText("State: " .. swingState, 20, 20)
-        gfx.drawText("Shot: " .. currentShotQuality, 20, 40)
-        gfx.drawText("Back: " .. math.floor(backswingPower), 20, 60)
-        gfx.drawText("Down: " .. math.floor(downswingPower), 20, 80)
-        gfx.drawText("Ratio: " .. string.format("%.2f", tempoRatio), 20, 100) 
-        gfx.drawText("Tilt: " .. tostring(gravityX) .. ", " .. tostring(gravityY) .. ", " .. tostring(gravityZ), 20, 120) 
-    end
 
     -- ---------- SWING STATE MACHINE ----------
     if swingState == SwingState.Ready then -- READY
@@ -151,8 +210,15 @@ function pd.update()
         if crankChange > swingThreshold then
             downswingPower = crankChange
 
-            -- evaluate shot quality at impact
+            deviceTiltAtImpact = currentDeviceTiltX 
+
+            -- evaluate shot quality and shape at impact
             currentShotQuality, tempoRatio = evaluateShotQuality(backswingPower, downswingPower)
+            currentShotShape = evaluateShotShape(deviceTiltAtImpact)
+
+            -- apply shot shape and quality to build curve
+            applyShotShape(currentShotShape)
+            applyShotQuality(currentShotQuality)
 
             shotStartTime = pd.getCurrentTimeMilliseconds() / 1000
             shotProgress = 0.0
@@ -190,14 +256,46 @@ function pd.update()
     elseif pd.buttonIsPressed(pd.kButtonLeft) then
         controlPoint.x -= 1
     end
-    -- ---------- Bezier Curve Experimation - END ----------
 
+    -- ---------- DEBUG ----------
     if pd.buttonJustPressed(pd.kButtonB) then
-        print("Button B Pressed")
-        if showDebugHUD == false then
+        if not showDebugHUD and not showDebugLines then
+            showDebugLines = true
+        elseif not showDebugHUD and showDebugLines then
             showDebugHUD = true
-        else
+        elseif showDebugHUD and showDebugLines then
             showDebugHUD = false
+            showDebugLines = false
         end
+    end
+
+    if showDebugHUD then
+        gfx.drawText("State: " .. swingState, 20, 20)
+        gfx.drawText("Shot: " .. currentShotQuality, 20, 40)
+        gfx.drawText("Back: " .. math.floor(backswingPower), 20, 60)
+        gfx.drawText("Down: " .. math.floor(downswingPower), 20, 80)
+        gfx.drawText("Ratio: " .. string.format("%.2f", tempoRatio), 20, 100) 
+        gfx.drawText(string.format("Tilt: %.2f", deviceTiltAtImpact), 20, 120)
+        gfx.drawText("Shape: " .. currentShotShape, 20, 140)
+    end
+
+    if showDebugLines then
+        gfx.drawCircleAtPoint(teePoint.x, teePoint.y, 10)
+        gfx.drawText("TP", teePoint.x - 30, teePoint.y - 20)
+
+        gfx.drawCircleAtPoint(landingPoint.x, landingPoint.y, 10)
+        gfx.drawText("LP", landingPoint.x - 30, landingPoint.y - 20)
+
+        gfx.drawCircleAtPoint(controlPoint.x, controlPoint.y, 10)
+        gfx.drawText("CP", controlPoint.x - 30, controlPoint.y - 20)
+
+        local teeToControl, controlToLanding, curvePoint = Bezier.debugPoints(teePoint, controlPoint, landingPoint, animationT)
+        gfx.drawCircleAtPoint(teeToControl.x, teeToControl.y, 7)
+        gfx.drawCircleAtPoint(controlToLanding.x, controlToLanding.y, 7)
+        gfx.drawCircleAtPoint(curvePoint.x, curvePoint.y, 7)
+
+        gfx.drawLine(teePoint.x, teePoint.y, controlPoint.x, controlPoint.y)
+        gfx.drawLine(controlPoint.x, controlPoint.y, landingPoint.x, landingPoint.y)
+        gfx.drawLine(teeToControl.x, teeToControl.y, controlToLanding.x, controlToLanding.y)
     end
 end
