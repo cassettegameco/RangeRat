@@ -12,6 +12,7 @@ local TestImpactSoundSet = {
     pd.sound.fileplayer.new("sounds/ballHit4")
 }
 
+--[[
 local ImpactSoundSet = {
     Pure = { -- crack
         hit1,
@@ -32,6 +33,7 @@ local ImpactSoundSet = {
         mishit3
     }
 }
+]]
 
 local showDebugHUD = false
 local showDebugLines = false
@@ -40,7 +42,8 @@ local SwingState = {
     Ready = "READY",
     Backswing = "BACKSWING",
     Downswing = "DOWNSWING",
-    Flight = "FLIGHT"
+    Flight = "FLIGHT",
+    BucketComplete = "BUCKET_COMPLETE" -- ⚠️ This is more a game state than a swing state, move this when implementing scene management
 }
 
 --[[
@@ -77,7 +80,16 @@ gfx.sprite.setBackgroundDrawingCallback(
 )
 ]]
 
--- ---------- BEZIER CURVE EXPERIMENTATION ----------
+-- ---------- BUCKET ----------
+local Bucket = {
+    Small = 10,
+    Medium = 15,
+    Large = 20
+}
+local selectedBucket = Bucket.Small
+local currentShot = 0
+
+-- ---------- BALL ----------
 local teePoint = { x = 200, y = 220 }
 local landingPoint = { x = 200, y = 20 }
 local controlPoint = { x = 200, y = 120 }
@@ -195,12 +207,16 @@ local function applyShotQuality(quality)
     end
 end
 
+--[[
 local function playBallImpactSound(shotQuality)
     local soundSet = ImpactSoundSet[currentShotQuality]
     soundSet[math.random(#soundSet)]:play()
 end
+]]
 
 -- ⚠️ is off by default to save power, stop to put back in lower-power state
+-- ⚠️ is this the best way to do this or should i turn it on/off in state machine 
+-- ⚠️ so it would only be on when it is needed?
 pd.startAccelerometer()
 
 -- ---------- GAME LOOP ----------
@@ -259,6 +275,7 @@ function pd.update()
 
             local randomHitSound = TestImpactSoundSet[math.random(1, #TestImpactSoundSet)]
             randomHitSound:play()
+            currentShot += 1
 
             swingState = SwingState.Flight
         end
@@ -272,6 +289,17 @@ function pd.update()
         gfx.fillCircleAtPoint(ball.x, ball.y, 5)
 
         if shotProgress >= 1.0 then
+            if currentShot == selectedBucket then
+                swingState = SwingState.BucketComplete
+            else
+                swingState = SwingState.Ready
+            end
+        end
+    elseif swingState == SwingState.BucketComplete then
+        gfx.drawTextAligned("Bucket Complete!", 200, 120, kTextAlignment.center)
+
+        if pd.buttonJustPressed(pd.kButtonA) then
+            currentShot = 0
             swingState = SwingState.Ready
         end
     end
@@ -306,6 +334,9 @@ function pd.update()
             showDebugLines = false
         end
     end
+    
+    gfx.drawText(selectedBucket .. " Bucket", 300, 200)
+    gfx.drawText("Shot: " .. currentShot .. "/" .. selectedBucket, 300, 220)
 
     if showDebugHUD then
         gfx.drawText("State: " .. swingState, 20, 20)
