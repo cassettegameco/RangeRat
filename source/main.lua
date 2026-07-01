@@ -4,6 +4,35 @@ import "bezier"
 
 local pd = playdate
 local gfx = pd.graphics
+
+local TestImpactSoundSet = {
+    pd.sound.fileplayer.new("sounds/ballHit1"),
+    pd.sound.fileplayer.new("sounds/ballHit2"),
+    pd.sound.fileplayer.new("sounds/ballHit3"),
+    pd.sound.fileplayer.new("sounds/ballHit4")
+}
+
+local ImpactSoundSet = {
+    Pure = { -- crack
+        hit1,
+        hit2,
+        hit3
+    },
+    Weak = { -- thud
+        weak1,
+        weak2
+    },
+    Rushed = { -- harder crack
+        rushed1,
+        rushed2
+    },
+    Mishit = { -- chunk
+        mishit1,
+        mishit2,
+        mishit3
+    }
+}
+
 local showDebugHUD = false
 local showDebugLines = false
 
@@ -166,6 +195,11 @@ local function applyShotQuality(quality)
     end
 end
 
+local function playBallImpactSound(shotQuality)
+    local soundSet = ImpactSoundSet[currentShotQuality]
+    soundSet[math.random(#soundSet)]:play()
+end
+
 -- ⚠️ is off by default to save power, stop to put back in lower-power state
 pd.startAccelerometer()
 
@@ -222,6 +256,10 @@ function pd.update()
 
             shotStartTime = pd.getCurrentTimeMilliseconds() / 1000
             shotProgress = 0.0
+
+            local randomHitSound = TestImpactSoundSet[math.random(1, #TestImpactSoundSet)]
+            randomHitSound:play()
+
             swingState = SwingState.Flight
         end
     elseif swingState == SwingState.Flight then -- FLIGHT
@@ -283,7 +321,31 @@ function pd.update()
         gfx.drawCircleAtPoint(teePoint.x, teePoint.y, 10)
         gfx.drawText("TP", teePoint.x - 30, teePoint.y - 20)
 
-        gfx.drawCircleAtPoint(landingPoint.x, landingPoint.y, 10)
+        gfx.drawCircleAtPoint(125, 150, 10)
+        gfx.drawCircleAtPoint(125, 90, 10)
+        gfx.drawCircleAtPoint(125, 40, 10)
+        gfx.drawCircleAtPoint(125, 20, 10)
+
+        gfx.drawCircleAtPoint(175, 150, 10)
+        gfx.drawCircleAtPoint(175, 90, 10)
+        gfx.drawCircleAtPoint(175, 40, 10)
+        gfx.drawCircleAtPoint(175, 20, 10)
+
+        gfx.drawCircleAtPoint(200, 150, 10)
+        gfx.drawCircleAtPoint(200, 90, 10)
+        gfx.drawCircleAtPoint(200, 40, 10)
+        gfx.drawCircleAtPoint(200, 20, 10)
+
+        gfx.drawCircleAtPoint(225, 150, 10)
+        gfx.drawCircleAtPoint(225, 90, 10)
+        gfx.drawCircleAtPoint(225, 40, 10)
+        gfx.drawCircleAtPoint(225, 20, 10)
+
+        gfx.drawCircleAtPoint(275, 150, 10)
+        gfx.drawCircleAtPoint(275, 90, 10)
+        gfx.drawCircleAtPoint(275, 40, 10)
+        gfx.drawCircleAtPoint(275, 20, 10)
+        --gfx.drawCircleAtPoint(landingPoint.x, landingPoint.y, 10)
         gfx.drawText("LP", landingPoint.x - 30, landingPoint.y - 20)
 
         gfx.drawCircleAtPoint(controlPoint.x, controlPoint.y, 10)
