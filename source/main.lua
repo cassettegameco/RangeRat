@@ -99,6 +99,13 @@ local ShotScore = {
 
 local currentBucketScore = 0
 
+local ShotTracker = {
+    PURE = 0,
+    RUSHED = 0,
+    WEAK = 0,
+    MISHIT = 0
+}
+
 -- ---------- BALL ----------
 local teePoint = { x = 200, y = 220 }
 local landingPoint = { x = 200, y = 20 }
@@ -286,6 +293,7 @@ function pd.update()
             currentShotShape = evaluateShotShape(deviceTiltAtImpact)
 
             -- score shot
+            ShotTracker[currentShotQuality] += 1
             showFeedbackText(currentShotQuality)
             currentBucketScore += ShotScore[currentShotQuality]
 
@@ -319,12 +327,27 @@ function pd.update()
             end
         end
     elseif swingState == SwingState.BucketComplete then
-        gfx.drawTextAligned("Bucket Complete!", 200, 120, kTextAlignment.center)
-        gfx.drawTextAligned("Press A to Restart", 200, 160, kTextAlignment.center)
+        if not feedbackText then
+            gfx.drawTextAligned("Bucket Complete!", 200, 30, kTextAlignment.center)
+        
+            gfx.drawTextAligned("Score: " .. currentBucketScore, 200, 70, kTextAlignment.center)
+            gfx.drawTextAligned("Pure: " .. ShotTracker.PURE, 200, 90, kTextAlignment.center)
+            gfx.drawTextAligned("Rushed: " .. ShotTracker.RUSHED, 200, 110, kTextAlignment.center)
+            gfx.drawTextAligned("Weak: " .. ShotTracker.WEAK, 200, 130, kTextAlignment.center)
+            gfx.drawTextAligned("Mishit: " .. ShotTracker.MISHIT, 200, 150, kTextAlignment.center)
 
-        if pd.buttonJustPressed(pd.kButtonA) then
-            currentShot = 0
-            swingState = SwingState.Ready
+
+            gfx.drawTextAligned("Press A to Restart", 200, 190, kTextAlignment.center)
+
+            if pd.buttonJustPressed(pd.kButtonA) then
+                currentShot = 0
+                currentBucketScore = 0
+                ShotTracker.PURE = 0
+                ShotTracker.RUSHED = 0
+                ShotTracker.MISHIT = 0
+                ShotTracker.WEAK = 0
+                swingState = SwingState.Ready
+            end
         end
     end
     -- ------------------------------------------
