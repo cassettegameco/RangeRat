@@ -127,8 +127,8 @@ local swingThreshold = 8
 local currentDeviceTiltX = 0.0
 local deviceTiltAtImpact = 0.0
 local currentShotShape = ShotShape.Straight
-local straightTiltThreshold = 0.10
-local severeTiltThreshold = 0.35
+local straightTiltThreshold = 0.05
+local severeTiltThreshold = 0.18
 
 -- ⚠️ consider splitting into separate functions, calculateTempoQuality and calculateShotQuality
 local function evaluateShotQuality(backswingPower, downswingPower)
