@@ -89,6 +89,16 @@ local Bucket = {
 local selectedBucket = Bucket.Small
 local currentShot = 0
 
+-- ---------- SCORING ----------
+local ShotScore = {
+    PURE = 100,
+    RUSHED = 70,
+    WEAK = 40,
+    MISHIT = 0
+}
+
+local currentBucketScore = 0
+
 -- ---------- BALL ----------
 local teePoint = { x = 200, y = 220 }
 local landingPoint = { x = 200, y = 20 }
@@ -207,6 +217,15 @@ local function applyShotQuality(quality)
     end
 end
 
+local feedbackText = nil
+local feedbackTextStartTime = 0
+local feedbackTextDuration = 750 --milliseconds
+
+local function showFeedbackText(text)
+    feedbackText = text
+    feedbackTextStartTime = pd.getCurrentTimeMilliseconds()
+end
+
 --[[
 local function playBallImpactSound(shotQuality)
     local soundSet = ImpactSoundSet[currentShotQuality]
@@ -266,6 +285,10 @@ function pd.update()
             currentShotQuality, tempoRatio = evaluateShotQuality(backswingPower, downswingPower)
             currentShotShape = evaluateShotShape(deviceTiltAtImpact)
 
+            -- score shot
+            showFeedbackText(currentShotQuality)
+            currentBucketScore += ShotScore[currentShotQuality]
+
             -- apply shot shape and quality to build curve
             applyShotShape(currentShotShape)
             applyShotQuality(currentShotQuality)
@@ -297,6 +320,7 @@ function pd.update()
         end
     elseif swingState == SwingState.BucketComplete then
         gfx.drawTextAligned("Bucket Complete!", 200, 120, kTextAlignment.center)
+        gfx.drawTextAligned("Press A to Restart", 200, 160, kTextAlignment.center)
 
         if pd.buttonJustPressed(pd.kButtonA) then
             currentShot = 0
@@ -335,8 +359,9 @@ function pd.update()
         end
     end
     
-    gfx.drawText(selectedBucket .. " Bucket", 300, 200)
-    gfx.drawText("Shot: " .. currentShot .. "/" .. selectedBucket, 300, 220)
+    gfx.drawText("Score: " .. currentBucketScore, 310, 10)
+    gfx.drawText(selectedBucket .. " Bucket", 310, 200)
+    gfx.drawText("Shot: " .. currentShot .. "/" .. selectedBucket, 310, 220)
 
     if showDebugHUD then
         gfx.drawText("State: " .. swingState, 20, 20)
@@ -390,5 +415,15 @@ function pd.update()
         gfx.drawLine(teePoint.x, teePoint.y, controlPoint.x, controlPoint.y)
         gfx.drawLine(controlPoint.x, controlPoint.y, landingPoint.x, landingPoint.y)
         gfx.drawLine(teeToControl.x, teeToControl.y, controlToLanding.x, controlToLanding.y)
+    end
+
+    if feedbackText then
+        local elapsed = pd.getCurrentTimeMilliseconds() - feedbackTextStartTime
+
+        if elapsed < feedbackTextDuration then
+            gfx.drawTextAligned(feedbackText, 200, 120, kTextAlignment.center)
+        else
+            feedbackText = nil
+        end
     end
 end
