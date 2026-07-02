@@ -37,6 +37,7 @@ local ImpactSoundSet = {
 
 local showDebugHUD = false
 local showDebugLines = false
+local showSwingMeter = false
 
 local SwingState = {
     Ready = "READY",
@@ -233,6 +234,44 @@ local function showFeedbackText(text)
     feedbackTextStartTime = pd.getCurrentTimeMilliseconds()
 end
 
+local lastShotDebug = {
+    backswing = 0,
+    downswing = 0,
+    ratio = 0,
+    quality = "",
+    shape = ""
+}
+
+local function drawSwingDebug()
+    local meterX = 20
+    local meterY = 100
+    local meterWidth = 120
+    local meterHeight = 8
+
+
+    if swingState == SwingState.BucketComplete then
+                gfx.drawText("State: DONE", meterX, meterY - 20)
+
+    else
+        gfx.drawText("State: " .. swingState, meterX, meterY - 20)
+    end
+    gfx.drawText("Quality: " .. lastShotDebug.quality, meterX, meterY)
+    gfx.drawText("Back: " .. math.floor(lastShotDebug.backswing), meterX, meterY + 20)
+    gfx.drawText("Down: " .. math.floor(lastShotDebug.downswing), meterX, meterY + 40)
+    gfx.drawText("Ratio: " .. string.format("%.2f", lastShotDebug.ratio), meterX, meterY + 60)
+
+    -- backswing bar
+    gfx.drawRect(meterX, meterY + 85, meterWidth, meterHeight)
+    gfx.fillRect(meterX, meterY + 85, math.min(lastShotDebug.backswing * 4, meterWidth), meterHeight)
+
+    -- downswing bar
+    gfx.drawRect(meterX, meterY + 105, meterWidth, meterHeight)
+    gfx.fillRect(meterX, meterY + 105, math.min(lastShotDebug.downswing * 4, meterWidth), meterHeight)
+
+    gfx.drawText("BACK", meterX + meterWidth + 8, meterY + 80)
+    gfx.drawText("DOWN", meterX + meterWidth + 8, meterY + 100)
+end
+
 --[[
 local function playBallImpactSound(shotQuality)
     local soundSet = ImpactSoundSet[currentShotQuality]
@@ -291,6 +330,12 @@ function pd.update()
             -- evaluate shot quality and shape at impact
             currentShotQuality, tempoRatio = evaluateShotQuality(backswingPower, downswingPower)
             currentShotShape = evaluateShotShape(deviceTiltAtImpact)
+
+            lastShotDebug.backswing = backswingPower
+            lastShotDebug.downswing = downswingPower
+            lastShotDebug.ratio = tempoRatio
+            lastShotDebug.quality = currentShotQuality
+            lastShotDebug.shape = currentShotShape
 
             -- score shot
             ShotTracker[currentShotQuality] += 1
@@ -372,13 +417,22 @@ function pd.update()
 
     -- ---------- DEBUG ----------
     if pd.buttonJustPressed(pd.kButtonB) then
-        if not showDebugHUD and not showDebugLines then
-            showDebugLines = true
-        elseif not showDebugHUD and showDebugLines then
-            showDebugHUD = true
-        elseif showDebugHUD and showDebugLines then
+        if not showDebugHUD and not showDebugLines and not showSwingMeter then
             showDebugHUD = false
             showDebugLines = false
+            showSwingMeter = true
+        elseif not showDebugHUD and not showDebugLines and showSwingMeter then
+            showDebugHUD = false
+            showDebugLines = true
+            showSwingMeter = false
+        elseif not showDebugHUD and showDebugLines and not showSwingMeter then
+            showDebugHUD = true
+            showDebugLines = false
+            showSwingMeter = false
+        elseif showDebugHUD then
+            showDebugHUD = false
+            showDebugLines = false
+            showSwingMeter = false
         end
     end
     
@@ -438,6 +492,10 @@ function pd.update()
         gfx.drawLine(teePoint.x, teePoint.y, controlPoint.x, controlPoint.y)
         gfx.drawLine(controlPoint.x, controlPoint.y, landingPoint.x, landingPoint.y)
         gfx.drawLine(teeToControl.x, teeToControl.y, controlToLanding.x, controlToLanding.y)
+    end
+
+    if showSwingMeter then
+        drawSwingDebug()
     end
 
     if feedbackText then
