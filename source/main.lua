@@ -1,9 +1,34 @@
 import "CoreLibs/graphics"
 import "CoreLibs/sprites"
+import "CoreLibs/animation"
 import "bezier"
 
 local pd = playdate
 local gfx = pd.graphics
+
+local golferTable = gfx.imagetable.new("images/Rat-v1")
+assert(golferTable, "Could not load golfer imagetable")
+
+local golferAnimation = gfx.animation.loop.new(100, golferTable, false)
+local golfer = gfx.sprite.new()
+golfer:setImage(golferTable:getImage(1))
+golfer:moveTo(180, 200)
+
+local isGolferAnimating = false
+local pendingBallFlight = false
+local swingAnimationStartTime = 0
+local swingAnimationDuration = 200
+
+
+function golfer:update()
+    if isGolferAnimating then
+        self:setImage(golferAnimation:image())
+    else
+        self:setImage(golferTable:getImage(1))
+    end
+end
+
+golfer:add()
 
 local TestImpactSoundSet = {
     pd.sound.fileplayer.new("sounds/ballHit1"),
@@ -345,6 +370,18 @@ function pd.update()
             -- apply shot shape and quality to build curve
             applyShotShape(currentShotShape)
             applyShotQuality(currentShotQuality)
+
+            golferAnimation.frame = 1
+            isGolferAnimating = true
+            swingAnimationStartTime = pd.getCurrentTimeMilliseconds()
+            swingState = SwingState.Downswing
+        end
+    elseif swingState == SwingState.Downswing then -- DOWNSWING
+        local elapsed = pd.getCurrentTimeMilliseconds() - swingAnimationStartTime
+
+        if elapsed >= swingAnimationDuration then
+            isGolferAnimating = false
+            golfer:setImage(golferTable:getImage(1))
 
             shotStartTime = pd.getCurrentTimeMilliseconds() / 1000
             shotProgress = 0.0
