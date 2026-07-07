@@ -7,7 +7,7 @@ import "bezier"
 local pd = playdate
 local gfx = pd.graphics
 
-local backgroundImg = gfx.image.new("images/RatRange-BG")
+local backgroundImg = gfx.image.new("images/RatRange-BG-2")
 assert(backgroundImg)
 
 gfx.sprite.setBackgroundDrawingCallback(
@@ -18,7 +18,7 @@ gfx.sprite.setBackgroundDrawingCallback(
     end
 )
 
-local golferTable = gfx.imagetable.new("images/Rat-v1")
+local golferTable = gfx.imagetable.new("images/Rat-v2")
 assert(golferTable, "Could not load golfer imagetable")
 
 -- ⚠️ Change this so that the backswing triggers on the right state
@@ -413,7 +413,7 @@ function pd.update()
 
         playdate.graphics.setColor(gfx.kColorWhite)
         local ball = Bezier.at(teePoint, controlPoint, landingPoint, shotProgress)
-        gfx.fillCircleAtPoint(ball.x, ball.y, 5)
+        gfx.fillCircleAtPoint(ball.x, ball.y, 3)
         playdate.graphics.setColor(gfx.kColorBlack)
 
         if shotProgress >= 1.0 then
