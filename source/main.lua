@@ -339,7 +339,7 @@ function pd.update()
 
     -- display remaining balls
     playdate.graphics.setColor(gfx.kColorWhite)
-    for i = 1, selectedBucket - currentShot do
+    for i = 1, (selectedBucket - currentShot - 1) do
         gfx.fillCircleAtPoint(20 + ((i - 1) * 10), 225, 3)
     end
     playdate.graphics.setColor(gfx.kColorBlack)
@@ -498,9 +498,9 @@ function pd.update()
     end
     
     gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
-    gfx.drawText("Score: " .. currentBucketScore, 310, 10)
-    gfx.drawText(selectedBucket .. " Bucket", 310, 200)
-    gfx.drawText("Shot: " .. currentShot .. "/" .. selectedBucket, 310, 220)
+    gfx.drawText("*Score: " .. currentBucketScore .. "*", 310, 7)
+    gfx.drawText("*" .. selectedBucket .. " Bucket*", 310, 200)
+    gfx.drawText("*Shot: " .. currentShot .. "/" .. selectedBucket .. "*", 310, 220)
     gfx.setImageDrawMode(gfx.kDrawModeCopy)
 
 
