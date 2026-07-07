@@ -7,6 +7,7 @@ import "bezier"
 local pd = playdate
 local gfx = pd.graphics
 
+
 local backgroundImg = gfx.image.new("images/RatRange-BG-2")
 assert(backgroundImg)
 
@@ -336,6 +337,14 @@ function pd.update()
 
     gfx.sprite.update()
 
+    -- display remaining balls
+    playdate.graphics.setColor(gfx.kColorWhite)
+    for i = 1, selectedBucket - currentShot do
+        gfx.fillCircleAtPoint(20 + ((i - 1) * 10), 225, 3)
+    end
+    playdate.graphics.setColor(gfx.kColorBlack)
+
+
     local crankPosition = pd.getCrankPosition() -- club/swing direction or aim angle
     local crankChange, acceleratedChange = pd.getCrankChange() -- swing motion, tempo/power/fatigue risk
 
@@ -488,9 +497,13 @@ function pd.update()
         end
     end
     
+    gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
     gfx.drawText("Score: " .. currentBucketScore, 310, 10)
     gfx.drawText(selectedBucket .. " Bucket", 310, 200)
     gfx.drawText("Shot: " .. currentShot .. "/" .. selectedBucket, 310, 220)
+    gfx.setImageDrawMode(gfx.kDrawModeCopy)
+
+
 
     if showDebugHUD then
         gfx.drawText("State: " .. swingState, 20, 20)
