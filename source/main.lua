@@ -1,14 +1,27 @@
 import "CoreLibs/graphics"
 import "CoreLibs/sprites"
 import "CoreLibs/animation"
+import "CoreLibs/object"
 import "bezier"
 
 local pd = playdate
 local gfx = pd.graphics
 
+local backgroundImg = gfx.image.new("images/RatRange-BG")
+assert(backgroundImg)
+
+gfx.sprite.setBackgroundDrawingCallback(
+    function( x, y, width, height )
+        -- x,y,width,height is the updated area in sprite-local coordinates
+        -- The clip rect is already set to this area, so we don't need to set it ourselves
+        backgroundImg:draw( 0, 0 )
+    end
+)
+
 local golferTable = gfx.imagetable.new("images/Rat-v1")
 assert(golferTable, "Could not load golfer imagetable")
 
+-- ⚠️ Change this so that the backswing triggers on the right state
 local golferAnimation = gfx.animation.loop.new(100, golferTable, false)
 local golfer = gfx.sprite.new()
 golfer:setImage(golferTable:getImage(1))
@@ -398,8 +411,10 @@ function pd.update()
 
         shotProgress = math.min(elapsed / shotDuration, 1.0)
 
+        playdate.graphics.setColor(gfx.kColorWhite)
         local ball = Bezier.at(teePoint, controlPoint, landingPoint, shotProgress)
         gfx.fillCircleAtPoint(ball.x, ball.y, 5)
+        playdate.graphics.setColor(gfx.kColorBlack)
 
         if shotProgress >= 1.0 then
             if currentShot == selectedBucket then
