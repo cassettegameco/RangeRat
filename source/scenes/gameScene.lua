@@ -92,7 +92,7 @@ local ShotTracker = {
     MISHIT = 0
 }
 
--- ---------- BALL ----------
+-- ---------- BALL RELATED ----------
 local teePoint = { x = 200, y = 220 }
 local landingPoint = { x = 200, y = 20 }
 local controlPoint = { x = 200, y = 120 }
@@ -104,10 +104,11 @@ gfx.pushContext(ballImage)
     gfx.setColor(gfx.kColorWhite)
     gfx.fillCircleAtPoint(3, 3, 3)
 gfx.popContext()
-
 -- create a sprite from the reusable ball image
 -- this makes the ball something the sprite system can render
 local ballSprite = gfx.sprite.new(ballImage)
+
+local remainingBallSprites = {}
 
 -- ---------- SHOT ----------
 local shotStartTime = 0.0
@@ -157,6 +158,16 @@ local ImpactSoundSet = {
     }
 }
 ]]
+
+local function updateRemainingBallsHUD()
+    for i, hudBall in ipairs(remainingBallSprites) do
+        if i <= (selectedBucket - currentShot - 1) then
+            hudBall:setVisible(true)
+        else
+            hudBall:setVisible(false)
+        end
+    end
+end
 
 -- ⚠️ consider splitting into separate functions, calculateTempoQuality and calculateShotQuality
 local function evaluateShotQuality(backswingPower, downswingPower)
@@ -325,9 +336,17 @@ function GameScene:init()
 
     golfer:add()
 
-    -- ----- BALL -----
+    -- ----- BALL RELATED -----
     ballSprite:moveTo(teePoint.x, teePoint.y)
     ballSprite:add()
+
+    for i = 1, selectedBucket - 1 do
+        local hudBall = gfx.sprite.new(ballImage)
+        hudBall:moveTo(20 + ((i - 1) * 10), 225)
+        hudBall:add()
+        table.insert(remainingBallSprites, hudBall)
+    end
+    updateRemainingBallsHUD()
 
     -- ⚠️ is off by default to save power, stop to put back in lower-power state
     -- ⚠️ is this the best way to do this or should i turn it on/off in state machine 
@@ -349,12 +368,7 @@ function GameScene:update()
     local animationT = math.sin(time) * 0.5 + 0.5
 
     -- display remaining balls
-    playdate.graphics.setColor(gfx.kColorWhite)
-    for i = 1, (selectedBucket - currentShot - 1) do
-        gfx.fillCircleAtPoint(20 + ((i - 1) * 10), 225, 3)
-    end
-    playdate.graphics.setColor(gfx.kColorBlack)
-
+    updateRemainingBallsHUD()
 
     local crankPosition = pd.getCrankPosition() -- club/swing direction or aim angle
     local crankChange, acceleratedChange = pd.getCrankChange() -- swing motion, tempo/power/fatigue risk
@@ -474,6 +488,7 @@ function GameScene:update()
     end
     -- ------------------------------------------
 
+    -- ⚠️ a dotted or fading trail rendered could be good here and give more feedback
     --[[ Approximate curve with filled circles drawing a dotted curve
     for i = 1, 25, 1 do
         local curveT = i/25
@@ -490,6 +505,22 @@ function GameScene:update()
         controlPoint.y += 1
     elseif pd.buttonIsPressed(pd.kButtonLeft) then
         controlPoint.x -= 1
+    end
+
+    gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
+    gfx.drawText("*Score: " .. currentBucketScore .. "*", 310, 7)
+    gfx.drawText("*" .. selectedBucket .. " Bucket*", 310, 200)
+    gfx.drawText("*Shot: " .. currentShot .. "/" .. selectedBucket .. "*", 310, 220)
+    gfx.setImageDrawMode(gfx.kDrawModeCopy)
+
+    if feedbackText then
+        local elapsed = pd.getCurrentTimeMilliseconds() - feedbackTextStartTime
+
+        if elapsed < feedbackTextDuration then
+            gfx.drawTextAligned(feedbackText, 200, 120, kTextAlignment.center)
+        else
+            feedbackText = nil
+        end
     end
 
     -- ---------- DEBUG ----------
@@ -512,14 +543,6 @@ function GameScene:update()
             showSwingMeter = false
         end
     end
-    
-    gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
-    gfx.drawText("*Score: " .. currentBucketScore .. "*", 310, 7)
-    gfx.drawText("*" .. selectedBucket .. " Bucket*", 310, 200)
-    gfx.drawText("*Shot: " .. currentShot .. "/" .. selectedBucket .. "*", 310, 220)
-    gfx.setImageDrawMode(gfx.kDrawModeCopy)
-
-
 
     if showDebugHUD then
         gfx.drawText("State: " .. swingState, 20, 20)
@@ -579,14 +602,10 @@ function GameScene:update()
     if showSwingMeter then
         drawSwingDebug()
     end
-
-    if feedbackText then
-        local elapsed = pd.getCurrentTimeMilliseconds() - feedbackTextStartTime
-
-        if elapsed < feedbackTextDuration then
-            gfx.drawTextAligned(feedbackText, 200, 120, kTextAlignment.center)
-        else
-            feedbackText = nil
-        end
-    end
 end
+
+
+
+-- GOAL: Show a ball counter at the bottom of the screen
+    -- Create a reusable ball sprite 
+    -- Display that ball on the screen
