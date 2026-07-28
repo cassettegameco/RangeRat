@@ -195,6 +195,10 @@ local function updateRemainingBallsHUD()
     end
 end
 
+local function updateTeeBallVisibility()
+    ballSprite:setVisible(currentShot < selectedBucket)
+end
+
 local function updateBucketStatsHUD()
     -- local scoreText = 
 end
@@ -369,6 +373,7 @@ function GameScene:init()
     -- ----- BALL RELATED -----
     ballSprite:moveTo(teePoint.x, teePoint.y)
     ballSprite:add()
+    updateTeeBallVisibility()
 
     for i = 1, selectedBucket - 1 do
         local hudBall = gfx.sprite.new(ballImage)
@@ -480,6 +485,7 @@ function GameScene:update()
             local randomHitSound = TestImpactSoundSet[math.random(1, #TestImpactSoundSet)]
             randomHitSound:play()
             currentShot += 1
+            updateTeeBallVisibility()
 
             swingState = SwingState.Flight
         end
@@ -495,11 +501,12 @@ function GameScene:update()
         playdate.graphics.setColor(gfx.kColorBlack)
 
         if shotProgress >= 1.0 then
-            ballSprite:moveTo(teePoint.x, teePoint.y)
-
             if currentShot == selectedBucket then
+                updateTeeBallVisibility()
                 swingState = SwingState.BucketComplete
             else
+                ballSprite:moveTo(teePoint.x, teePoint.y)
+                updateTeeBallVisibility()
                 swingState = SwingState.Ready
             end
         end
@@ -523,6 +530,8 @@ function GameScene:update()
                 ShotTracker.RUSHED = 0
                 ShotTracker.MISHIT = 0
                 ShotTracker.WEAK = 0
+                ballSprite:moveTo(teePoint.x, teePoint.y)
+                updateTeeBallVisibility()
                 swingState = SwingState.Ready
             end
         end
