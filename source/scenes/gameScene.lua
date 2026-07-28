@@ -104,22 +104,6 @@ gfx.pushContext(scoreSizeImage)
 gfx.popContext()
 local scoreHUDSprite = gfx.sprite.new(scoreSizeImage)
 
-local bucketText = "*" .. selectedBucket .. " Bucket*"
-local bucketSizeImage = gfx.image.new(gfx.getTextSize(bucketText))
-gfx.pushContext(bucketSizeImage)
-    gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
-    gfx.drawText("*" .. selectedBucket .. " Bucket*", 0, 0)
-gfx.popContext()
-local bucketSizeHUDSprite = gfx.sprite.new(bucketSizeImage)
-
-local currentShotText = "*Shot: " .. currentShot .. "/" .. selectedBucket .. "*"
-local currentShotSizeImage = gfx.image.new(gfx.getTextSize(currentShotText))
-gfx.pushContext(currentShotSizeImage)
-    gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
-    gfx.drawText("*Shot: " .. currentShot .. "/" .. selectedBucket .. "*", 0, 0)
-gfx.popContext()
-local currentShotHUDSprite = gfx.sprite.new(currentShotSizeImage)
-
 -- ---------- BALL RELATED ----------
 local teePoint = { x = 200, y = 220 }
 local landingPoint = { x = 200, y = 20 }
@@ -387,12 +371,6 @@ function GameScene:init()
 
     scoreHUDSprite:moveTo(310, 10)
     scoreHUDSprite:add()
-
-    bucketSizeHUDSprite:moveTo(310, 200)
-    bucketSizeHUDSprite:add()
-
-    currentShotHUDSprite:moveTo(310, 220)
-    currentShotHUDSprite:add()
 
     -- ⚠️ is off by default to save power, stop to put back in lower-power state
     -- ⚠️ is this the best way to do this or should i turn it on/off in state machine 
