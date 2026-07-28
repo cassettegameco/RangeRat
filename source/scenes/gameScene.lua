@@ -76,13 +76,6 @@ local selectedBucket = Bucket.Small
 local currentShot = 0
 
 -- ---------- SCORING ----------
-local ShotScore = {
-    PURE = 100,
-    RUSHED = 70,
-    WEAK = 40,
-    MISHIT = 0
-}
-
 local currentBucketScore = 0
 
 local ShotTracker = {
@@ -103,6 +96,28 @@ gfx.pushContext(scoreSizeImage)
     gfx.drawText("*Score: " .. currentBucketScore .. "*", 0, 0)
 gfx.popContext()
 local scoreHUDSprite = gfx.sprite.new(scoreSizeImage)
+
+--
+
+local currentShotText = "*Shot: " .. currentShot .. "/" .. selectedBucket .. "*"
+local currentShotSizeImage = gfx.image.new(gfx.getTextSize(currentShotText))
+gfx.pushContext(currentShotSizeImage)
+    gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
+    gfx.drawText(currentShotText, 0, 0)
+gfx.popContext()
+local currentShotHUDSprite = gfx.sprite.new(currentShotSizeImage)
+
+--
+
+local currentShotText = "*Shot: " .. currentShot .. "/" .. selectedBucket .. "*"
+local currentShotSizeImage = gfx.image.new(gfx.getTextSize(currentShotText))
+
+gfx.pushContext(currentShotSizeImage)
+    gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
+    gfx.drawText(currentShotText, 0, 0)
+gfx.popContext()
+
+local currentShotHUDSprite = gfx.sprite.new(currentShotSizeImage)
 
 -- ---------- BALL RELATED ----------
 local teePoint = { x = 200, y = 220 }
@@ -184,7 +199,15 @@ local function updateTeeBallVisibility()
 end
 
 local function updateBucketStatsHUD()
-    -- local scoreText = 
+    local scoreText = "*Score: " .. currentBucketScore .. "*"
+    local scoreImage = gfx.image.new(gfx.getTextSize(scoreText))
+
+    gfx.pushContext(scoreImage)
+        gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
+        gfx.drawText(scoreText, 0, 0)
+    gfx.popContext()
+
+    scoreHUDSprite:setImage(scoreImage)
 end
 
 -- ⚠️ consider splitting into separate functions, calculateTempoQuality and calculateShotQuality
@@ -282,6 +305,40 @@ local function applyShotQuality(quality)
     end
 end
 
+local function calculateShotScore(shotQuality, shotShape)
+    local qualityBase = {
+        PURE = 100,
+        RUSHED = 75,
+        WEAK = 55,
+        MISHIT = 20
+    }
+
+    local shapeMultiplier = {
+        STRAIGHT = 1.0,
+        DRAW = 0.9,
+        FADE = 0.9,
+        HOOK = 0.7,
+        SLICE = 0.7
+    }
+
+    local base = qualityBase[shotQuality] or 0
+    local multiplier = shapeMultiplier[shotShape] or 0
+
+    return math.floor(base * multiplier)
+end
+
+local function updateShotHUD()
+    local shotText = "*Shot: " .. currentShot .. "/" .. selectedBucket .. "*"
+    local shotImage = gfx.image.new(gfx.getTextSize(shotText))
+
+    gfx.pushContext(shotImage)
+        gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
+        gfx.drawText(shotText, 0, 0)
+    gfx.popContext()
+
+    currentShotHUDSprite:setImage(shotImage)
+end
+
 local function showFeedbackText(text)
     feedbackText = text
     feedbackTextStartTime = pd.getCurrentTimeMilliseconds()
@@ -372,6 +429,12 @@ function GameScene:init()
     scoreHUDSprite:moveTo(310, 10)
     scoreHUDSprite:add()
 
+    currentShotHUDSprite:moveTo(310, 220)
+    currentShotHUDSprite:add()
+    
+    updateBucketStatsHUD()
+    updateShotHUD()
+
     -- ⚠️ is off by default to save power, stop to put back in lower-power state
     -- ⚠️ is this the best way to do this or should i turn it on/off in state machine 
     -- ⚠️ so it would only be on when it is needed?
@@ -434,9 +497,12 @@ function GameScene:update()
             lastShotDebug.shape = currentShotShape
 
             -- score shot
+            local shotScore = calculateShotScore(currentShotQuality, currentShotShape)
+
             ShotTracker[currentShotQuality] += 1
-            showFeedbackText(currentShotQuality)
-            currentBucketScore += ShotScore[currentShotQuality]
+            showFeedbackText(currentShotQuality .. " " .. currentShotShape .. " +" .. shotScore)
+            currentBucketScore += shotScore
+            updateBucketStatsHUD()
 
             -- apply shot shape and quality to build curve
             applyShotShape(currentShotShape)
@@ -463,6 +529,7 @@ function GameScene:update()
             local randomHitSound = TestImpactSoundSet[math.random(1, #TestImpactSoundSet)]
             randomHitSound:play()
             currentShot += 1
+            updateShotHUD()
             updateTeeBallVisibility()
 
             swingState = SwingState.Flight
@@ -510,6 +577,8 @@ function GameScene:update()
                 ShotTracker.WEAK = 0
                 ballSprite:moveTo(teePoint.x, teePoint.y)
                 updateTeeBallVisibility()
+                updateShotHUD()
+                updateBucketStatsHUD()
                 swingState = SwingState.Ready
             end
         end
