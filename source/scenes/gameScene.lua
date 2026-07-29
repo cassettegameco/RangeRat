@@ -133,7 +133,8 @@ gfx.pushContext(ballImage)
 gfx.popContext()
 -- create a sprite from the reusable ball image
 -- this makes the ball something the sprite system can render
-local ballSprite = gfx.sprite.new(ballImage)
+local teeBallSprite = gfx.sprite.new(ballImage)
+local flightBallSprite = gfx.sprite.new(ballImage)
 
 -- ---------- SHOT ----------
 local shotStartTime = 0.0
@@ -195,7 +196,17 @@ local function updateRemainingBallsHUD()
 end
 
 local function updateTeeBallVisibility()
-    ballSprite:setVisible(currentShot < selectedBucket)
+    local ballAvailable = currentShot < selectedBucket
+    local ballStillOnTee = swingState == SwingState.Ready or swingState == SwingState.Backswing
+    teeBallSprite:setVisible(ballAvailable and ballStillOnTee)
+end
+
+local function showFlightBall()
+    flightBallSprite:setVisible(true)
+end
+
+local function hideFlightBall()
+    flightBallSprite:setVisible(false)
 end
 
 local function updateBucketStatsHUD()
@@ -412,9 +423,15 @@ function GameScene:init()
     golfer:add()
 
     -- ----- BALL RELATED -----
-    ballSprite:moveTo(teePoint.x, teePoint.y)
-    ballSprite:add()
+    teeBallSprite:moveTo(teePoint.x, teePoint.y)
+    teeBallSprite:add()
+
+    flightBallSprite:moveTo(teePoint.x, teePoint.y)
+    flightBallSprite:setVisible(false)
+    flightBallSprite:add()
+
     updateTeeBallVisibility()
+    hideFlightBall()
 
     for i = 1, selectedBucket - 1 do
         local hudBall = gfx.sprite.new(ballImage)
@@ -524,13 +541,15 @@ function GameScene:update()
             shotProgress = 0.0
 
             -- reset ball to tee location
-            ballSprite:moveTo(teePoint.x, teePoint.y)
+            flightBallSprite:moveTo(teePoint.x, teePoint.y)
+            showFlightBall()
+            teeBallSprite:setVisible(false)
 
             local randomHitSound = TestImpactSoundSet[math.random(1, #TestImpactSoundSet)]
             randomHitSound:play()
+
             currentShot += 1
             updateShotHUD()
-            updateTeeBallVisibility()
 
             swingState = SwingState.Flight
         end
@@ -542,17 +561,18 @@ function GameScene:update()
 
         playdate.graphics.setColor(gfx.kColorWhite)
         local ball = Bezier.at(teePoint, controlPoint, landingPoint, shotProgress)
-        ballSprite:moveTo(ball.x, ball.y)
+        flightBallSprite:moveTo(ball.x, ball.y)
         playdate.graphics.setColor(gfx.kColorBlack)
 
         if shotProgress >= 1.0 then
+            hideFlightBall()
+
             if currentShot == selectedBucket then
-                updateTeeBallVisibility()
                 swingState = SwingState.BucketComplete
             else
-                ballSprite:moveTo(teePoint.x, teePoint.y)
-                updateTeeBallVisibility()
+                teeBallSprite:moveTo(teePoint.x, teePoint.y)
                 swingState = SwingState.Ready
+                updateTeeBallVisibility()
             end
         end
     elseif swingState == SwingState.BucketComplete then
@@ -575,11 +595,16 @@ function GameScene:update()
                 ShotTracker.RUSHED = 0
                 ShotTracker.MISHIT = 0
                 ShotTracker.WEAK = 0
-                ballSprite:moveTo(teePoint.x, teePoint.y)
+
+                teeBallSprite:moveTo(teePoint.x, teePoint.y)
+                flightBallSprite:moveTo(teePoint.x, teePoint.y)
+
+                hideFlightBall()
+                swingState = SwingState.Ready
                 updateTeeBallVisibility()
+
                 updateShotHUD()
                 updateBucketStatsHUD()
-                swingState = SwingState.Ready
             end
         end
     end
