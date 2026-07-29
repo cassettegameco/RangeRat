@@ -722,6 +722,12 @@ end
 
 
 
--- GOAL: Show a ball counter at the bottom of the screen
-    -- Create a reusable ball sprite 
-    -- Display that ball on the screen
+--TODOS:
+    -- ⚠️ There is subtle ordering I would like to fix. I don't want the next ball to show on the tee until after the current ball flight and score is finsihed.
+    -- ⚠️ Add end of round scoring screen
+    -- ⚠️ Endless Mode
+    -- ⚠️ Scoring round leaderboard
+    -- ⚠️ Subtle pulsing animation of "Press A to Start" text
+    -- ⚠️ Title screen background music
+    -- ⚠️ Golf range background audio for game scene
+    -- ⚠️ End of round scoring scene
